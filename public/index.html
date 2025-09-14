@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Betting Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #495057;
+        }
+        
+        .tab:hover { background: #e9ecef; }
+        .tab.active {
+            background: white;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .tab-content { display: none; padding: 30px; }
+        .tab-content.active { display: block; }
+        
+        .slip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .slip-info h2 { font-size: 1.8rem; margin-bottom: 5px; }
+        .slip-stats { text-align: right; }
+        .slip-stats div { margin-bottom: 5px; }
+        
+        .update-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .update-btn:hover {
+            background: #219a52;
+            transform: translateY(-2px);
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
+            border-left: 4px solid #3498db;
+        }
+        
+        .summary-card h3 { color: #2c3e50; margin-bottom: 10px; }
+        .summary-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        
+        tr:hover { background: #f8f9fa; }
+        
+        .player-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .team-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.8rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f39c12, #27ae60);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        
+        .status.on-track { background: #d5f4e6; color: #27ae60; }
+        .status.behind { background: #fadbd8; color: #e74c3c; }
+        .status.ahead { background: #d6eaf8; color: #3498db; }
+        
+        .last-updated {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏈 NFL Betting Tracker</h1>
+            <p>Real-time tracking with ESPN stats integration</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('slip1')">Receiving Yards (+6617)</button>
+            <button class="tab" onclick="showTab('slip2')">Rushing Yards (+4157)</button>
+            <button class="tab" onclick="showTab('slip3')">Mixed Props (+40470)</button>
+        </div>
+
+        <div id="slip1" class="tab-content active">
+            <div class="slip-header">
+                <div class="slip-info">
+                    <h2>Receiving Yards Parlay</h2>
+                    <div>6-leg parlay • All 1000+ receiving yards</div>
+                </div>
+                <div class="slip-stats">
+                    <div><strong>Wager:</strong> $500.00</div>
+                    <div><strong>Potential Payout:</strong> $33,586.14</div>
+                    <div><strong>Odds:</strong> +6617</div>
+                    <button class="update-btn" onclick="updateStats('slip1')">Update Stats</button>
+                </div>
+            </div>
+
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <h3>Legs Hit</h3>
+                    <div class="value" id="slip1-legs">0/6</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Avg Progress</h3>
+                    <div class="value" id="slip1-progress">0%</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Target</th>
+                            <th>Current</th>
+                            <th>Games</th>
+                            <th>Avg/Game</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slip1-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="slip2" class="tab-content">
+            <div class="slip-header">
+                <div class="slip-info">
+                    <h2>Rushing Yards Parlay</h2>
+                    <div>6-leg parlay • All 1000+ rushing yards</div>
+                </div>
+                <div class="slip-stats">
+                    <div><strong>Wager:</strong> $500.00</div>
+                    <div><strong>Potential Payout:</strong> $21,287.13</div>
+                    <div><strong>Odds:</strong> +4157</div>
+                    <button class="update-btn" onclick="updateStats('slip2')">Update Stats</button>
+                </div>
+            </div>
+
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <h3>Legs Hit</h3>
+                    <div class="value" id="slip2-legs">0/6</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Avg Progress</h3>
+                    <div class="value" id="slip2-progress">0%</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Target</th>
+                            <th>Current</th>
+                            <th>Games</th>
+                            <th>Avg/Game</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slip2-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="slip3" class="tab-content">
+            <div class="slip-header">
+                <div class="slip-info">
+                    <h2>Mixed Props Parlay</h2>
+                    <div>5-leg parlay • Passing, receiving yards & TDs</div>
+                </div>
+                <div class="slip-stats">
+                    <div><strong>Wager:</strong> $200.00</div>
+                    <div><strong>Potential Payout:</strong> $81,140.52</div>
+                    <div><strong>Odds:</strong> +40470</div>
+                    <button class="update-btn" onclick="updateStats('slip3')">Update Stats</button>
+                </div>
+            </div>
+
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <h3>Legs Hit</h3>
+                    <div class="value" id="slip3-legs">0/5</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Avg Progress</h3>
+                    <div class="value" id="slip3-progress">0%</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Stat Type</th>
+                            <th>Target</th>
+                            <th>Current</th>
+                            <th>Games</th>
+                            <th>Avg/Game</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="slip3-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Fetching latest stats...</div>
+        </div>
+
+        <div class="last-updated" id="lastUpdated">Last updated: Never</div>
+    </div>
+
+    <script>
+        const slipData = {
+            slip1: [
+                { name: 'George Pickens', team: 'PIT', teamColor: '#FFB612', target: 1000, current: 0, games: 0, espnId: '4426384' },
+                { name: 'Tyreek Hill', team: 'MIA', teamColor: '#008E97', target: 1000, current: 0, games: 0, espnId: '2576434' },
+                { name: 'Jaxon Smith-Njigba', team: 'SEA', teamColor: '#002244', target: 1000, current: 0, games: 0, espnId: '4685760' },
+                { name: 'Mike Evans', team: 'TB', teamColor: '#D50A0A', target: 1000, current: 0, games: 0, espnId: '16737' },
+                { name: 'Courtland Sutton', team: 'DEN', teamColor: '#FB4F14', target: 1000, current: 0, games: 0, espnId: '3116385' },
+                { name: 'Malik Nabers', team: 'NYG', teamColor: '#0B2265', target: 1000, current: 0, games: 0, espnId: '4685755' }
+            ],
+            slip2: [
+                { name: 'Chase Brown', team: 'CIN', teamColor: '#FB4F14', target: 1000, current: 0, games: 0, espnId: '4432577' },
+                { name: 'James Cook', team: 'BUF', teamColor: '#00338D', target: 1000, current: 0, games: 0, espnId: '4241984' },
+                { name: 'Bucky Irving', team: 'TB', teamColor: '#D50A0A', target: 1000, current: 0, games: 0, espnId: '4685629' },
+                { name: 'Tony Pollard', team: 'TEN', teamColor: '#0C2340', target: 1000, current: 0, games: 0, espnId: '4040715' },
+                { name: 'Bijan Robinson', team: 'ATL', teamColor: '#A71930', target: 1000, current: 0, games: 0, espnId: '4361045' },
+                { name: 'Ashton Jeanty', team: 'LV', teamColor: '#000000', target: 1000, current: 0, games: 0, espnId: 'draft2025' }
+            ],
+            slip3: [
+                { name: 'Dak Prescott', team: 'DAL', teamColor: '#003594', target: 4500, current: 0, games: 0, espnId: '2577417', statType: 'Passing Yards' },
+                { name: 'Matthew Golden', team: 'GB', teamColor: '#203731', target: 1000, current: 0, games: 0, espnId: 'draft2025', statType: 'Receiving Yards' },
+                { name: 'Kyle Pitts', team: 'ATL', teamColor: '#A71930', target: 750, current: 0, games: 0, espnId: '4241479', statType: 'Receiving Yards' },
+                { name: 'Tyler Warren', team: 'IND', teamColor: '#002C5F', target: 750, current: 0, games: 0, espnId: 'draft2025', statType: 'Receiving Yards' },
+                { name: 'Tetairoa McMillan', team: 'CAR', teamColor: '#0085CA', target: 8, current: 0, games: 0, espnId: 'draft2025', statType: 'Receiving TDs' }
+            ]
+        };
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function getProgressStatus(percentage, statType = '') {
+            if (statType === 'Receiving TDs') {
+                if (percentage >= 100) return 'ahead';
+                if (percentage >= 50) return 'on-track';
+                return 'behind';
+            } else {
+                if (percentage >= 100) return 'ahead';
+                if (percentage >= 60) return 'on-track';
+                return 'behind';
+            }
+        }
+
+        async function fetchPlayerStats(player) {
+            try {
+                const response = await fetch(`/api/player/${player.espnId}/stats/2025`);
+                const data = await response.json();
+                
+                let current = 0;
+                if (player.statType === 'Passing Yards') {
+                    current = data.passingYards || 0;
+                } else if (player.statType === 'Receiving Yards') {
+                    current = data.receivingYards || 0;
+                } else if (player.statType === 'Receiving TDs') {
+                    current = data.receivingTouchdowns || 0;
+                } else {
+                    current = data.rushingYards || 0;
+                }
+
+                return {
+                    current: current,
+                    games: data.gamesPlayed || 0,
+                    avgPerGame: data.gamesPlayed > 0 ? Math.round((current / data.gamesPlayed) * 10) / 10 : 0
+                };
+            } catch (error) {
+                console.error(`Error fetching stats for ${player.name}:`, error);
+                return { current: 0, games: 0, avgPerGame: 0 };
+            }
+        }
+
+        function renderTable(slipId) {
+            const tableBody = document.getElementById(`${slipId}-table`);
+            const players = slipData[slipId];
+            
+            tableBody.innerHTML = '';
+            
+            players.forEach(player => {
+                const percentage = Math.min((player.current / player.target) * 100, 100);
+                const status = getProgressStatus(percentage, player.statType);
+                
+                const row = document.createElement('tr');
+                const statTypeCell = player.statType ? `<td>${player.statType}</td>` : '';
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="player-cell">
+                            <div class="team-logo" style="background-color: ${player.teamColor}">${player.team}</div>
+                            <strong>${player.name}</strong>
+                        </div>
+                    </td>
+                    ${statTypeCell}
+                    <td><strong>${player.target.toLocaleString()}</strong></td>
+                    <td>${player.current.toLocaleString()}</td>
+                    <td>${player.games}</td>
+                    <td>${player.avgPerGame}</td>
+                    <td>
+                        <div>${percentage.toFixed(1)}%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    </td>
+                    <td><span class="status ${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateSummaryCards(slipId) {
+            const players = slipData[slipId];
+            const legsHit = players.filter(p => p.current >= p.target).length;
+            const avgProgress = players.reduce((sum, p) => sum + (p.current / p.target * 100), 0) / players.length;
+            
+            document.getElementById(`${slipId}-legs`).textContent = `${legsHit}/${players.length}`;
+            document.getElementById(`${slipId}-progress`).textContent = `${avgProgress.toFixed(1)}%`;
+        }
+
+        async function updateStats(slipId) {
+            const loadingDiv = document.getElementById('loading');
+            loadingDiv.style.display = 'block';
+            
+            try {
+                const players = slipData[slipId];
+                
+                for (let player of players) {
+                    const stats = await fetchPlayerStats(player);
+                    player.current = stats.current;
+                    player.games = stats.games;
+                    player.avgPerGame = stats.avgPerGame;
+                }
+                
+                renderTable(slipId);
+                updateSummaryCards(slipId);
+                
+                document.getElementById('lastUpdated').textContent = 
+                    `Last updated: ${new Date().toLocaleString()}`;
+                
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTable('slip1');
+            renderTable('slip2');
+            renderTable('slip3');
+            updateSummaryCards('slip1');
+            updateSummaryCards('slip2');
+            updateSummaryCards('slip3');
+        });
+
+        // Auto-update every 30 minutes
+        setInterval(() => {
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab) {
+                updateStats(activeTab.id);
+            }
+        }, 30 * 60 * 1000);
+    </script>
+</body>
+</html>
